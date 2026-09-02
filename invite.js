@@ -140,14 +140,23 @@ const tilt  = document.getElementById('tilt');
 const root  = document.documentElement;
 const RATIO = 504.8 / 360;
 
+let mobile = window.innerWidth <= 840;
+let index  = 1;                                  // which panel is centred (0/1/2)
+
 function layout(){
   const vw = window.innerWidth, vh = window.innerHeight;
+  mobile = vw <= 840;
 
-  if (vw <= 840){
-    root.style.setProperty('--panel-w', Math.min(vw - 30, 440) + 'px');
+  if (mobile){
+    // one panel fills the screen; the fold still happens, we just watch it up close
+    const w = Math.min(vw * 0.88, (vh - 250) / RATIO);
+    root.style.setProperty('--panel-w', w + 'px');
     root.style.setProperty('--fit', 1);
+    pan();
     return;
   }
+
+  root.style.setProperty('--pan', '0px');
   const avail = vh - 210;                       // bar, controls, signature
   const cap   = avail / RATIO;
   const open  = Math.min(vw * 0.90 / 3, cap);   // three panels side by side
@@ -159,6 +168,77 @@ function layout(){
   root.style.setProperty('--panel-w', open + 'px');
   root.style.setProperty('--fit', wide / open);
 }
+
+/* ---------- panning between panels (small screens) ---------- */
+
+function panelPx(){
+  return parseFloat(getComputedStyle(root).getPropertyValue('--panel-w')) || 0;
+}
+
+/* The card is 3 panels wide with the centre panel in the middle, so panel i
+   sits at (i - 1) panel-widths from centre. A flipped card mirrors that. */
+function pan(extra = 0){
+  if (!mobile) return;
+  const dir = card.dataset.side === 'back' ? -1 : 1;      // a flipped card mirrors left/right
+  const x = dir * (1 - index) * panelPx() + extra;
+  root.style.setProperty('--pan', x.toFixed(1) + 'px');
+}
+
+function goTo(i){
+  index = Math.max(0, Math.min(2, i));
+  pan();
+  dots.forEach((d, n) => {
+    d.classList.toggle('is-on', n === index);
+    d.setAttribute('aria-selected', String(n === index));
+  });
+}
+
+const pager = document.getElementById('pager');
+const dots  = [...pager.querySelectorAll('.pager__d')];
+dots.forEach(d => d.addEventListener('click', () => goTo(+d.dataset.i)));
+
+/* drag / swipe */
+(function swipe(){
+  let x0 = null, y0 = 0, locked = null, dragged = false;
+
+  card.addEventListener('click', e => {
+    if (dragged){ e.preventDefault(); e.stopPropagation(); dragged = false; }
+  }, true);
+
+  card.addEventListener('pointerdown', e => {
+    if (!mobile || !opened) return;
+    x0 = e.clientX; y0 = e.clientY; locked = null;
+  });
+
+  card.addEventListener('pointermove', e => {
+    if (x0 === null) return;
+    const dx = e.clientX - x0, dy = e.clientY - y0;
+    if (locked === null){
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      locked = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      if (locked === 'x'){ card.classList.add('is-dragging'); dragged = true; }
+    }
+    if (locked !== 'x') return;
+    e.preventDefault();
+    // resist at the ends so the card feels hinged, not free
+    const atEnd = (index === 0 && dx > 0) || (index === 2 && dx < 0);
+    pan(atEnd ? dx * 0.3 : dx);
+  }, { passive:false });
+
+  function release(e){
+    if (x0 === null) return;
+    const dx = (e.clientX ?? x0) - x0;
+    x0 = null;
+    card.classList.remove('is-dragging');
+    if (locked !== 'x'){ return; }
+    const throwPx = Math.min(panelPx() * 0.22, 90);
+    if (dx < -throwPx)      goTo(index + 1);
+    else if (dx > throwPx)  goTo(index - 1);
+    else                    pan();
+  }
+  card.addEventListener('pointerup', release);
+  card.addEventListener('pointercancel', release);
+})();
 
 /* ---------- the fold ---------- */
 
@@ -191,7 +271,7 @@ function openCard(){
 
   setTimeout(() => {
     tray.hidden = false;
-    requestAnimationFrame(() => tray.classList.add('is-in'));
+    requestAnimationFrame(() => { tray.classList.add('is-in'); pager.classList.add('is-in'); });
     busy = false;
   }, step() * 2 + (reduce.matches ? 0 : 140));
 }
@@ -205,6 +285,8 @@ function closeCard(){
   opener.classList.remove('is-open');
 
   tray.classList.remove('is-in');
+  pager.classList.remove('is-in');
+  goTo(1);                                      // re-centre before folding up
   setTimeout(() => { tray.hidden = true; }, 520);
 
   card.dataset.state = 'half';                  // the RSVP panel tucks back in
@@ -242,6 +324,7 @@ function showSide(side){
   card.dataset.side = side;
   seg.dataset.on = side;
   root.style.setProperty('--flip', side === 'back' ? '180deg' : '0deg');
+  pan();
   segB.forEach(b => {
     const on = b.dataset.side === side;
     b.classList.toggle('is-on', on);
@@ -290,55 +373,101 @@ function petals(){
   }
 }
 
-/* ---------- background music ---------- */
+/* ---------- background music ----------
+   Routed through Web Audio rather than the <audio> element, because
+   iOS ignores HTMLMediaElement.volume entirely (the fade was a no-op
+   there) and an <audio> tag is silenced by the ringer switch. A
+   GainNode gives real volume control on every platform.            */
 
 const bgm  = document.getElementById('bgm');
 const mute = document.getElementById('mute');
 const PREF = 'am-music';
-const VOL  = 0.34;                 // ceiling — background, never foreground
-let playing = false;
+const VOL  = 0.34;                 // background, never foreground
+const SRC  = 'assets/music.mp3';
 
-function fade(to, ms, done){
-  const from = bgm.volume, t0 = performance.now();
-  (function tick(now){
-    const k = Math.min((now - t0) / ms, 1);
-    bgm.volume = from + (to - from) * k;
-    if (k < 1) requestAnimationFrame(tick); else if (done) done();
-  })(t0);
+const AUTOPLAY_ON_OPEN = true;     // false = the Music button only
+
+let ctx = null, gain = null, node = null, buffer = null, loading = null;
+let playing = false, useTag = false;
+
+function setBtn(on){
+  playing = on;
+  mute.setAttribute('aria-pressed', String(on));
+}
+
+function loadBuffer(){
+  if (loading) return loading;
+  loading = fetch(SRC)
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+    .then(a => ctx.decodeAudioData(a))
+    .then(b => { buffer = b; return b; });
+  return loading;
 }
 
 function musicOn(){
-  bgm.volume = 0;
+  const AC = window.AudioContext || window.webkitAudioContext;
+
+  if (!AC){ return tagOn(); }
+  if (!ctx){
+    ctx  = new AC();
+    gain = ctx.createGain();
+    gain.gain.value = 0;
+    gain.connect(ctx.destination);
+  }
+  ctx.resume();                                  // must happen inside the gesture
+
+  setBtn(true);
+  loadBuffer().then(() => {
+    if (!playing) return;
+    if (node) { try { node.stop(); } catch(e){} }
+    node = ctx.createBufferSource();
+    node.buffer = buffer;
+    node.loop = true;
+    node.connect(gain);
+    node.start(0);
+    gain.gain.cancelScheduledValues(ctx.currentTime);
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(VOL, ctx.currentTime + 2.6);
+  }).catch(() => { useTag = true; tagOn(); });
+}
+
+function tagOn(){                                 // fallback: plain <audio>
   const go = bgm.play();
-  const ok = () => {
-    playing = true;
-    mute.setAttribute('aria-pressed', 'true');
-    fade(VOL, 2600);
-  };
-  if (go && go.then) go.then(ok).catch(() => { playing = false; mute.setAttribute('aria-pressed','false'); });
-  else ok();
+  if (go && go.then) go.then(() => setBtn(true)).catch(() => setBtn(false));
+  else setBtn(true);
 }
 
 function musicOff(){
-  playing = false;
-  mute.setAttribute('aria-pressed', 'false');
-  fade(0, 700, () => bgm.pause());
+  setBtn(false);
+  if (ctx && gain){
+    gain.gain.cancelScheduledValues(ctx.currentTime);
+    gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.7);
+    setTimeout(() => { if (!playing && node){ try { node.stop(); } catch(e){} node = null; } }, 800);
+  }
+  if (!bgm.paused) bgm.pause();
 }
 
 mute.addEventListener('click', () => {
-  if (playing){ musicOff(); localStorage.setItem(PREF, 'off'); }
-  else        { musicOn();  localStorage.setItem(PREF, 'on'); }
+  if (playing){ musicOff(); store('off'); }
+  else        { musicOn();  store('on');  }
 });
 
-/* Starts on the same gesture that opens the card, which is what
-   browsers require. Set AUTOPLAY_ON_OPEN to false for click-to-play only. */
-const AUTOPLAY_ON_OPEN = true;
+function store(v){ try { localStorage.setItem(PREF, v); } catch(e){} }
+function stored(){ try { return localStorage.getItem(PREF); } catch(e){ return null; } }
 
+/* Starts on the same gesture that opens the card -- the only moment
+   browsers allow audio to begin. */
 function musicOnOpen(){
   if (!AUTOPLAY_ON_OPEN || playing) return;
-  if (localStorage.getItem(PREF) === 'off') return;
+  if (stored() === 'off') return;
   musicOn();
 }
+
+/* Browsers suspend the context when the tab is hidden; resume on return. */
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && playing && ctx && ctx.state === 'suspended') ctx.resume();
+});
 
 /* ---------- countdown + calendar ---------- */
 

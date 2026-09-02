@@ -4,6 +4,7 @@
    ------------------------------------------------------------------ */
 
 :root{
+  --pan:0px;
   /* ink lifted from the print file */
   --ink-maroon:#5e0018;
   --ink-brown:#331502;
@@ -178,14 +179,14 @@ body::before{
   inset:0;
   transform-style:preserve-3d;
   transform-origin:50% 50%;
-  transform:scale(var(--fit)) rotateY(var(--flip));
+  transform:translateX(var(--pan,0px)) scale(var(--fit)) rotateY(var(--flip));
   transition:transform var(--fold-ms) var(--ease);
   cursor:pointer;
   outline:none;
   animation:settle 1200ms var(--ease) backwards;
 }
 @keyframes settle{
-  from{opacity:0;transform:scale(calc(var(--fit) * .965)) rotateY(var(--flip)) translateY(24px)}
+  from{opacity:0;transform:translateX(var(--pan,0px)) scale(calc(var(--fit) * .965)) rotateY(var(--flip)) translateY(24px)}
 }
 .card:focus-visible{outline:1px solid var(--gild);outline-offset:14px}
 .card[data-state="open"]{cursor:default}
@@ -263,6 +264,27 @@ body::before{
 .panel[data-panel="credits"] .t,
 .card[data-state="open"] .t,
 .card[data-state="half"] .leaf--left .t{opacity:1}
+
+/* ---------------- pager (small screens) ---------------- */
+
+.pager{
+  display:none;
+  gap:9px;
+  align-items:center;
+  opacity:0;
+  transition:opacity 500ms ease;
+}
+.pager.is-in{opacity:1}
+.pager__d{
+  width:6px;height:6px;padding:0;
+  border:1px solid rgba(231,210,198,.32);
+  border-radius:50%;
+  background:none;
+  cursor:pointer;
+  transition:background 320ms ease,border-color 320ms ease,transform 320ms ease;
+}
+.pager__d.is-on{background:var(--gild);border-color:var(--gild);transform:scale(1.34)}
+.pager__d:focus-visible{outline:1px solid var(--gild);outline-offset:4px}
 
 /* ---------------- controls ---------------- */
 
@@ -397,70 +419,40 @@ body::before{
 
 .plain{padding:110px 28px;text-align:center;line-height:1.8}
 
-/* ---------------- under 840px: the fold becomes a stack ---------------- */
+/* ---------------- small screens ----------------
+   The fold is identical to desktop. What changes is the framing:
+   one panel fills the width, so the cover swings away to reveal
+   the centre panel, and the guest swipes to the other two.      */
 
 @media (max-width:840px){
-  .stage{perspective:none;height:auto}
-  .pool{display:none}
-  .tilt{
-    position:relative;
-    left:auto;top:auto;margin:0 auto;
-    width:var(--panel-w);height:auto;
-    transform:none !important;
+  .stage{
+    perspective:1750px;
+    perspective-origin:50% 46%;
+    overflow:hidden;
+    touch-action:pan-y;
   }
-  .card{
-    position:relative;
-    inset:auto;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:16px;
-    transform:none !important;
-    animation:none;
-  }
-  .leaf{
-    position:relative;
-    transform-style:flat;
-    left:auto !important;
-    width:100%;
-    transform:none !important;
-  }
-  .card[data-state="closed"] .leaf--centre,
-  .card[data-state="closed"] .leaf--right{display:none}
+  .card{cursor:grab}
+  .card[data-state="open"]{cursor:grab}
+  .card.is-dragging{cursor:grabbing;transition:none}
 
-  .leaf--left{order:1}
-  .leaf--centre{order:2}
-  .leaf--right{order:3}
+  .face{box-shadow:0 18px 34px -12px rgba(0,0,0,.72), 0 1px 0 rgba(255,240,230,.14) inset}
+  .pool{width:calc(var(--panel-w) * 1.7)}
 
-  .face--back{transform:none;opacity:0;pointer-events:none;transition:opacity 520ms ease}
-  .face--front{transition:opacity 520ms ease}
-  .card[data-side="back"] .face--back{opacity:1;pointer-events:auto}
-  .card[data-side="back"] .face--front{opacity:0;pointer-events:none}
-  .card[data-state="closed"] .leaf--left .face--back{opacity:1;pointer-events:auto}
-  .card[data-state="closed"] .leaf--left .face--front{opacity:0}
-
-  .card[data-state="open"] .leaf{animation:rise 760ms var(--ease) backwards}
-  .card[data-state="open"] .leaf--centre{animation-delay:110ms}
-  .card[data-state="open"] .leaf--right{animation-delay:220ms}
-  @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
-
-  .crease{display:none}
-  .room{padding:74px 14px 62px;gap:26px}
+  .room{padding:72px 10px 58px;gap:clamp(16px,3vh,26px)}
+  .pager{display:flex}
   .mute__txt{display:none}
   .mute{padding:7px 11px}
   .tools{border-radius:12px}
-  .tool{padding:11px 14px;font-size:11px}
+  .tool{padding:11px 13px;font-size:11px;letter-spacing:.1em}
+  .open{font-size:18px}
+}
+
+@media (max-width:400px){
+  .seg__b{min-width:78px;padding:7px 12px;letter-spacing:.2em}
+  .tool span{font-size:10px}
 }
 
 @media (prefers-reduced-motion:reduce){
   .petals{display:none}
   *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
-}
-
-/* mobile: flipping the closed packet shows the reverse panel, not the cover */
-@media (max-width:840px){
-  .card[data-state="closed"][data-side="back"] .leaf--left{display:none}
-  .card[data-state="closed"][data-side="back"] .leaf--centre{display:block}
-  .card[data-state="closed"][data-side="back"] .leaf--centre .face--back{opacity:1;pointer-events:auto}
-  .card[data-state="closed"][data-side="back"] .leaf--centre .face--front{opacity:0}
 }

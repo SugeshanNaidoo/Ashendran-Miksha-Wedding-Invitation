@@ -39,8 +39,8 @@ BEFORE YOU GO LIVE  --  the one thing you must change
   LinkedIn  www.linkedin.com/post-inspector/
 
 HOW IT WORKS
-  The six panels are the real artwork from the PDF — florals, pillars,
-  arch, deity art, Alba logo — with every text block redacted out.
+  The six panels are the real artwork from the PDF -- florals, pillars,
+  arch, deity art, Alba logo -- with every text block redacted out.
   All the wording is live HTML sitting on top, positioned from the
   original PDF point coordinates. So the copy is selectable, the
   phone numbers dial, the address opens Maps, and nothing is baked
@@ -48,7 +48,6 @@ HOW IT WORKS
 
   Opening follows the real letter fold: cover swings left, then the
   tucked panel unfolds right, revealing details | names | RSVP.
-  Under 840px it becomes a vertical stack instead.
 
   The button under the card toggles both ways -- "Open the
   invitation" becomes "Fold it away", and the fold runs in reverse:
@@ -60,6 +59,28 @@ HOW IT WORKS
   you turned the printed card over. Once it's open the toggle reads
   Inside / Outside and shows the full outer spread -- trishul,
   credits, cover -- in the same order as page 1 of the print PDF.
+
+
+SMALL SCREENS
+  Phones get the SAME fold, not a substitute. Earlier versions
+  flattened it into a vertical stack below 840px, which meant most
+  guests never saw the thing the site is built around.
+
+  What changes is the framing, not the mechanism. One panel fills
+  the width, so the guest is looking at the card up close: the
+  cover swings away and reveals the centre panel at full size.
+  They then swipe left and right to reach the date panel and the
+  RSVP panel, with three dots under the card showing where they
+  are. Drag follows the finger, resists at both ends, and snaps.
+
+  Vertical scrolling still works -- the swipe only takes over once
+  the gesture is clearly horizontal. Dragging across a phone number
+  won't dial it; a drag suppresses the click underneath it.
+
+  Everything else is identical: the flip works, the countdown
+  works, the tools work. Panel size is min(88vw, available height),
+  so it adapts from a small Android up to a tablet without any
+  breakpoint tuning.
 
 FONTS
   The print file uses The Seasons, JimmyScript and XBYas, which
@@ -92,40 +113,43 @@ DRIFTING PETALS
 
 
 BACKGROUND MUSIC
-  assets/music.mp3 and .ogg are an ORIGINAL 48-second loop written
-  for this project: a bansuri-style flute lead over a harmonium
-  pad with sparse plucked strings, in a Kalyan-leaning scale, with
-  a plate reverb. Nothing is sampled, covered or licensed.
+  assets/music.mp3 is an ORIGINAL 48-second loop written for this
+  project: a bansuri-style flute lead over a harmonium pad with
+  sparse plucked strings, in a Kalyan-leaning scale, with a plate
+  reverb. Nothing is sampled, covered or licensed.
 
   This exists because film songs cannot be hosted here. A wedding
   invite gets forwarded hundreds of times and sits on a public
-  URL -- a label's master on that URL is exactly what gets a
-  takedown, and it lands on the couple's page, not on ours.
+  URL -- a label's master on that URL is what draws a takedown,
+  and it lands on the couple's page. If they want a specific film
+  song, the clean routes are: link out to the official video;
+  licence it (YRF Music, Saregama, T-Series or Sony Music India,
+  allow weeks); or commission a flautist to record something
+  original. A cover of a film melody still needs the composition
+  rights -- only a new melody is free and clear.
 
-  If the couple want a specific film song, the clean routes are:
-    1. Link out. A small "the song we chose" link to the official
-       video costs nothing and is completely legitimate.
-    2. Licence it. For Yash Raj titles that's YRF Music; for most
-       Indian film catalogue it's Saregama, T-Series or Sony Music
-       India. A sync licence for a private, non-commercial page is
-       sometimes granted cheaply. Allow weeks, not days.
-    3. Commission a performance. A local flautist recording an
-       original piece is affordable and yields something nobody
-       else's invitation has. Note a cover of a film melody still
-       needs the composition rights -- only a new melody is free
-       and clear.
+  WHY IT'S WEB AUDIO, NOT THE <audio> TAG
+  iOS ignores HTMLMediaElement.volume completely, so the fade-in
+  was a silent no-op there, and a plain <audio> element is muted
+  by the iPhone ringer switch. The track now decodes into an
+  AudioContext and runs through a GainNode, which gives real
+  volume control on every platform and is not tied to the ringer
+  switch. The <audio> tag is kept only as a fallback for anything
+  without Web Audio.
 
-  To swap the audio, replace both files and keep the names. Both
-  formats are needed: Safari prefers mp3, Firefox ogg.
+  IF IT STILL DOESN'T PLAY ON AN IPHONE, check the physical
+  silent switch on the side of the phone first. That silences
+  more than people expect.
 
-  Behaviour: it starts on the same tap that opens the card, which
-  is the only way browsers allow audio to begin. It fades in over
-  2.6s and tops out at 34% volume. The Music button in the top bar
-  toggles it, and the choice is remembered in localStorage. If a
-  guest turns it off it stays off on their next visit.
+  The .ogg is gone. Every current browser plays mp3 -- Firefox
+  has since v22, in 2012 -- and Web Audio fetches the mp3
+  directly, so the second file was 700KB of dead weight.
 
-  For click-to-play only, set AUTOPLAY_ON_OPEN = false in
-  invite.js. Volume ceiling is the VOL constant next to it.
+  Behaviour: starts on the same tap that opens the card, the only
+  moment browsers allow audio to begin. Fades in over 2.6s to 34%
+  volume. The Music button toggles it and the choice is remembered
+  in localStorage. Set AUTOPLAY_ON_OPEN = false in invite.js for
+  click-to-play only; VOL next to it is the ceiling.
 
 
 CHROME
