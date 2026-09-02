@@ -239,7 +239,7 @@ function layout(){
 
   if (mobile){
     // one panel fills the screen; the fold still happens, we just watch it up close
-    const w = Math.min(vw * 0.88, (vh - 250) / RATIO);
+    const w = Math.min(vw * 0.88, (vh - 210) / RATIO);
     root.style.setProperty('--panel-w', w + 'px');
     root.style.setProperty('--fit', 1);
     pan();

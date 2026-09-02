@@ -169,6 +169,22 @@ FITTING THE SUBSTITUTE TYPE
   difference -- fitOne() in invite.js.
 
 
+SCROLLING ON PHONES
+  Two things were stopping it. html and body were both set to
+  height:100%, which caps the document at exactly one viewport, so
+  anything past that had nowhere to go. And the Alba credit was
+  position:fixed, sitting on top of the content rather than at the
+  end of it.
+
+  On small screens the page now grows to fit its content, the
+  content starts at the top instead of being vertically centred,
+  and the footer is a normal element in the flow. Vertical centring
+  is the subtler of the two problems: when centred content is
+  taller than its container, the overflow is pushed out of BOTH
+  ends, and the top of it can never be scrolled back to. Desktop
+  keeps the centring, because there the card always fits.
+
+
 BACKGROUND MUSIC
   assets/music.mp3 is an ORIGINAL 48-second loop written for this
   project: a bansuri-style flute lead over a harmonium pad with

@@ -31,7 +31,8 @@
 }
 
 *{box-sizing:border-box}
-html,body{height:100%}
+html{height:100%}
+body{min-height:100%}
 body{
   margin:0;
   background:var(--void);
@@ -466,7 +467,22 @@ body::before{
   .face{box-shadow:0 18px 34px -12px rgba(0,0,0,.72), 0 1px 0 rgba(255,240,230,.14) inset}
   .pool{width:calc(var(--panel-w) * 1.7)}
 
-  .room{padding:72px 10px 58px;gap:clamp(16px,3vh,26px)}
+  /* Phones must be able to scroll to the end of the page. Centring the
+     content vertically and pinning the footer meant anything taller than
+     the viewport was unreachable -- flex centring pushes the overflow out
+     of both ends, and a fixed footer sits on top of what is left. On small
+     screens the content starts at the top and the footer joins the flow. */
+  .room{
+    min-height:auto;
+    justify-content:flex-start;
+    padding:72px 10px 20px;
+    gap:clamp(16px,3vh,26px);
+  }
+  .sig{
+    position:static;
+    padding:26px 14px 34px;
+    pointer-events:auto;
+  }
   .pager{display:flex}
   .mute__txt{display:none}
   .mute{padding:7px 11px}
