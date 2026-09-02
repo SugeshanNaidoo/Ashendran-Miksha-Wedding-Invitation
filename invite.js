@@ -61,8 +61,10 @@ const TEXT = [
 
   // ---- rsvp ----
   { p:'rsvp', t:'Kindly RSVP before 25th October', b:[807,97,1051,117], f:SERIF, s:13.5, c:MAROON, i:1, fit:'track' },
-  { p:'rsvp', t:'Groom : 082 - 771 - 5879', b:[794,126,1064,175], f:SCRIPT, s:37.6, c:GOLD, fit:'size', href:'tel:+27827715879' },
-  { p:'rsvp', t:'Bride : 062 - 778 - 2122', b:[785,178,1072,228], f:SCRIPT, s:37.6, c:GOLD, fit:'size', href:'tel:+27627782122' },
+  { p:'rsvp', t:'Groom : 000 - 000 - 0000', b:[794,126,1064,175], f:SCRIPT, s:37.6, c:GOLD, fit:'size',
+    enc:'R3Jvb20gOiAwODIgLSA3NzEgLSA1ODc5', encHref:'dGVsOisyNzgyNzcxNTg3OQ==' },
+  { p:'rsvp', t:'Bride : 000 - 000 - 0000', b:[785,178,1072,228], f:SCRIPT, s:37.6, c:GOLD, fit:'size',
+    enc:'QnJpZGUgOiAwNjIgLSA3NzggLSAyMTIy', encHref:'dGVsOisyNzYyNzc4MjEyMg==' },
   { p:'rsvp', t:'ADM : ________', b:[867,237,991,261], f:SERIF, s:16.5, c:MAROON, i:1, ls:.02, fit:'track', id:'adm' },
   { p:'rsvp', t:'Your presence would be greatly appreciated', b:[780,274,1078,290], f:SERIF, s:12.5, c:MAROON, fit:'track' }
 ];
@@ -84,8 +86,8 @@ function build(){
     const cx = ((x0 + x1) / 2 - P.x) / P.w * 100;
     const cy = ((y0 + y1) / 2 - P.y) / P.h * 100;
 
-    const el = document.createElement(item.href ? 'a' : 'span');
-    el.className = 't' + (item.href ? ' t--link' : '');
+    const el = document.createElement(item.href || item.encHref ? 'a' : 'span');
+    el.className = 't' + (item.href || item.encHref ? ' t--link' : '');
     el.textContent = (item.id === 'adm' && guest) ? `ADM : ${guest}` : item.t;
     if (item.href){
       el.href = item.href;
@@ -108,28 +110,50 @@ function build(){
 }
 
 /* Match the printed line widths once the real fonts have loaded. */
-function fit(){
-  for (const rec of built){
-    const panelPx = rec.el.parentElement.offsetWidth;   // layout width, unaffected by the 3D transforms
-    if (!panelPx) continue;
-    const want = rec.target * panelPx;
-    const have = rec.el.offsetWidth;
-    if (!have) continue;
+function fitOne(rec){
+  const panelPx = rec.el.parentElement.offsetWidth;   // layout width, unaffected by the 3D transforms
+  if (!panelPx) return;
+  const want = rec.target * panelPx;
+  const have = rec.el.offsetWidth;
+  if (!have) return;
 
-    if (rec.item.fit === 'track'){
-      const chars = Math.max(rec.el.textContent.length - 1, 1);
-      const fontPx = parseFloat(getComputedStyle(rec.el).fontSize);
-      const extra  = (want - have) / chars / fontPx;          // in em
-      const ls     = (rec.item.ls || 0) + extra;
-      if (ls > -0.06 && ls < 0.32){
-        rec.el.style.letterSpacing = ls.toFixed(4) + 'em';
-        rec.el.style.transform = `translate(-50%,-50%) translateX(${(ls * fontPx) / 2}px)`;
-        continue;
-      }
+  if (rec.item.fit === 'track'){
+    const chars  = Math.max(rec.el.textContent.length - 1, 1);
+    const fontPx = parseFloat(getComputedStyle(rec.el).fontSize);
+    const extra  = (want - have) / chars / fontPx;      // in em
+    const ls     = (rec.item.ls || 0) + extra;
+    if (ls > -0.06 && ls < 0.32){
+      rec.el.style.letterSpacing = ls.toFixed(4) + 'em';
+      rec.el.style.transform = `translate(-50%,-50%) translateX(${(ls * fontPx) / 2}px)`;
+      return;
     }
-    // script faces, or tracking that would look wrong: scale the glyphs
-    const k = Math.min(Math.max(want / have, 0.7), 1.45);
-    rec.el.style.fontSize = (rec.item.s / rec.P.w * 100 * k) + 'cqw';
+  }
+  // script faces, or tracking that would look wrong: scale the glyphs instead
+  const k = Math.min(Math.max(want / have, 0.7), 1.45);
+  rec.el.style.fontSize = (rec.item.s / rec.P.w * 100 * k) + 'cqw';
+}
+
+function fit(){ built.forEach(fitOne); }
+
+/* ---------- contact details ----------
+   The numbers are not in the served HTML or JS in readable form.
+   Address harvesters fetch pages and read the DOM; they do not open
+   wedding invitations. The digits are assembled only when a guest
+   actually opens the card, which is the point at which a human is
+   demonstrably present. This does not stop a determined scraper --
+   nothing client-side can -- but it stops the automated sweeps that
+   are the realistic threat to a phone number on a public URL. */
+
+let contactsOut = false;
+
+function revealContacts(){
+  if (contactsOut) return;
+  contactsOut = true;
+  for (const rec of built){
+    if (!rec.item.enc) continue;
+    rec.el.textContent = atob(rec.item.enc);
+    rec.el.setAttribute('href', atob(rec.item.encHref));
+    fitOne(rec);
   }
 }
 
@@ -261,6 +285,8 @@ function openCard(){
   opener.classList.add('is-open');
 
   musicOnOpen();
+  revealContacts();
+  revealTools();
   card.dataset.state = 'half';                  // the cover swings away
   layout();
   setTimeout(() => {
@@ -468,6 +494,14 @@ function musicOnOpen(){
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && playing && ctx && ctx.state === 'suspended') ctx.resume();
 });
+
+/* the two call buttons in the tray get their numbers at the same moment */
+function revealTools(){
+  document.querySelectorAll('.tool[data-tel]').forEach(a => {
+    a.setAttribute('href', atob(a.dataset.tel));
+    a.removeAttribute('data-tel');
+  });
+}
 
 /* ---------- countdown + calendar ---------- */
 

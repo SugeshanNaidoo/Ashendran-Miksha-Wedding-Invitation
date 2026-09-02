@@ -1,0 +1,6 @@
+# This is a private wedding invitation. Please don't index or archive it.
+User-agent: *
+Disallow: /
+
+# Well-behaved crawlers honour the above. Harvesters do not, which is why
+# the contact numbers are not present in the served markup at all.

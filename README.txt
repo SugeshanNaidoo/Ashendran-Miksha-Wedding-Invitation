@@ -9,34 +9,38 @@ FILES
                   with the text stripped out, plus share.jpg and icons
 
 
-BEFORE YOU GO LIVE  --  the one thing you must change
-  index.html has a placeholder domain in five places:
-      https://invite.albasdesigns.com/ashendran-miksha/
-  It's in the canonical link, og:url, og:image, og:image:secure_url,
-  twitter:image and the JSON-LD image field. Find and replace it with
-  the real URL.
+LIVE URL
+  https://ashendran-miksha-wedding-invitation.vercel.app/
 
-  Link previews will NOT work with relative image paths -- WhatsApp,
-  Facebook, iMessage and Slack all need the full absolute URL. That's
-  why share.jpg is spelt out in full rather than as assets/share.jpg.
+  Every metadata field already points there -- canonical, og:url,
+  og:image, og:image:secure_url, twitter:image and the JSON-LD
+  image. No find-and-replace left to do.
 
-  This page is currently set to
+  If the URL ever changes, those six fields in index.html must
+  change with it. Link previews will NOT work with relative image
+  paths: WhatsApp, iMessage, Facebook and Slack all require the
+  full absolute URL, which is why share.jpg is spelt out in full
+  rather than as assets/share.jpg. This fails silently -- the page
+  looks perfect and the shared link just shows nothing.
+
+  The page is set to
       <meta name="robots" content="noindex, nofollow">
   so search engines will not list it. Guests reach it by link only.
-  The WhatsApp / iMessage / Facebook preview, the icon and the title
-  all still work -- those come from the Open Graph tags, which have
-  nothing to do with search indexing.
+  The WhatsApp / iMessage / Facebook preview, the icon and the
+  title all still work -- those come from the Open Graph tags,
+  which have nothing to do with search indexing.
 
   If it should ever be searchable, swap that line for
       <meta name="robots" content="index, follow, max-image-preview:large">
   The JSON-LD Event block is left in place either way. It costs
   nothing while noindexed and is ready if that changes.
 
-  share.jpg is 1200x630 and built from the ORIGINAL print artwork, so
-  it carries the real The Seasons and Parisienne type, not the web
-  substitutes. Re-scrape after any change:
+  share.jpg is 1200x630 and built from the ORIGINAL print artwork,
+  so it carries the real The Seasons and Parisienne type, not the
+  web substitutes. Re-scrape after any change:
   Facebook  developers.facebook.com/tools/debug/
   LinkedIn  www.linkedin.com/post-inspector/
+
 
 HOW IT WORKS
   The six panels are the real artwork from the PDF -- florals, pillars,
@@ -152,12 +156,78 @@ BACKGROUND MUSIC
   click-to-play only; VOL next to it is the ceiling.
 
 
-CHROME
+BOTS, SCRAPERS AND WHAT IS ACTUALLY WORTH DEFENDING
+  This is a static site. No server, no forms, no database, no login.
+  Client-side rate limiting on a page like this is theatre -- anyone
+  can open devtools and delete it, and there is no endpoint behind
+  it to protect. It was left out deliberately.
+
+  The one real exposure is the couple's mobile numbers on a public
+  URL. Address harvesters sweep pages constantly and those two
+  numbers were sitting in the raw HTML. They are now not present in
+  the served markup or the script in readable form -- they are
+  base64 and are assembled only when a guest opens the card, which
+  is the moment a human is demonstrably present. Harvesters fetch
+  pages; they do not open wedding invitations.
+
+  Be clear about the limit: this stops automated sweeps, which are
+  the realistic threat. It does not stop a person who looks. Nothing
+  client-side can, and anyone claiming otherwise is selling
+  something.
+
+  Also shipped:
+    robots.txt   asks crawlers to stay out (honoured by the good
+                 ones; the numbers are hidden from the rest)
+    vercel.json  security headers, a Content-Security-Policy, HSTS,
+                 immutable caching on /assets, and a redirect so
+                 README.txt is not readable from the web.
+
+  Hotlink protection is NOT included. Vercel has no referer-blocking
+  equivalent to the Apache rule, and on a wedding invite it is not
+  worth a rewrite rule -- the bandwidth exposure is a few hundred
+  KB of florals. If it ever matters, Cloudflare in front of the
+  domain gives it as a toggle.
+
+  IF YOU WANT REAL PROTECTION, it belongs at the edge, not in the
+  page. Put Cloudflare in front of it (the free tier is enough):
+  Bot Fight Mode, a rate limiting rule, and Hotlink Protection are
+  three toggles and will do more than any amount of JavaScript.
+
+  And the strongest measure for a private invite is not security at
+  all -- it is an unguessable URL. A path like
+  /a-and-m-6dec-k29fj4 is never discovered, never crawled, and
+  never appears in anyone's wordlist.
+
+  On ?adm=: the value is written with textContent, so it renders as
+  text and cannot execute. That is the only user input on the page
+  and it is safe.
+
+
+CHROMECHROME
   Everything around the card is deliberately quiet: near-black warm
   backdrop with one light source, fine film grain, Jost for the UI
   and Cormorant for anything that speaks in the couple's voice.
   On a fine pointer the card takes a few degrees of parallax tilt.
   All of it is disabled under prefers-reduced-motion.
 
-HOSTING
-  Static. Drop the folder on any host. No build step.
+HOSTING  --  Vercel
+  Live at
+      https://ashendran-miksha-wedding-invitation.vercel.app/
+  and every metadata field in index.html now points there. Nothing
+  left to find-and-replace.
+
+  Static, no build step. Drag the folder into Vercel, or push the
+  repo and let it deploy on commit.
+
+  vercel.json carries the security headers, the CSP, HSTS, long
+  immutable caching on /assets, and a redirect that keeps README.txt
+  off the web. The old .htaccess and _headers files are gone --
+  Vercel reads neither, so leaving them in would have been quietly
+  useless.
+
+  ONE THING TO WATCH on a .vercel.app subdomain: Vercel serves
+  preview deployments with its own X-Robots-Tag: noindex header.
+  That is on top of the noindex already in the page, so nothing
+  breaks -- but do not read a "blocked by robots" warning in a link
+  debugger as the preview being broken. Always test against the
+  production URL, not a deployment-specific one.
