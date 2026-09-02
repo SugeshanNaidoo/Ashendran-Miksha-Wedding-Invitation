@@ -70,7 +70,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500&family=Lora:wght@400;500&family=Parisienne&family=Sacramento&display=swap" rel="stylesheet">
-<link rel="preload" as="image" href="assets/panel-cover.jpg">
+<link rel="preload" as="image" href="assets/panel-cover.jpg" fetchpriority="high">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -146,19 +146,19 @@
       <nav class="tools" aria-label="Invitation actions">
         <a class="tool" id="ics" href="#" download="Ashendran-and-Miksha.ics">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3.5v4M16 3.5v4"/></svg>
-          <span>Add to calendar</span>
+          <span class="tool__l">Add to calendar</span><span class="tool__s">Calendar</span>
         </a>
         <a class="tool" href="https://www.google.com/maps/search/?api=1&query=Cato+Manor+Hindu+Temple%2C+588+Vusi+Mzimela+Rd%2C+Durban%2C+4091" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
-          <span>Directions</span>
+          <span class="tool__l">Directions</span><span class="tool__s">Map</span>
         </a>
         <a class="tool" href="#" data-tel="dGVsOisyNzgyNzcxNTg3OQ==">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7 2 2 0 0 1 6.5 3.5Z"/></svg>
-          <span>Groom</span>
+          <span class="tool__l">Groom</span><span class="tool__s">Groom</span>
         </a>
         <a class="tool" href="#" data-tel="dGVsOisyNzYyNzc4MjEyMg==">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7 2 2 0 0 1 6.5 3.5Z"/></svg>
-          <span>Bride</span>
+          <span class="tool__l">Bride</span><span class="tool__s">Bride</span>
         </a>
       </nav>
     </div>

@@ -86,6 +86,39 @@ SMALL SCREENS
   so it adapts from a small Android up to a tablet without any
   breakpoint tuning.
 
+LOADING ORDER
+  All six panels used to be declared as background-image rules in the
+  stylesheet, so the browser fetched all six the moment the page
+  opened. Only one of them is visible at that point -- the cover --
+  and at 274KB it is the largest file, so it regularly lost the race
+  and the card popped from blank paper to artwork while the guest
+  was looking at it.
+
+  Now nothing about the artwork is in the CSS. invite.js loads:
+    1. the cover, alone, with fetchpriority=high. The card stays at
+       opacity 0 until it has fully DECODED, not merely downloaded --
+       decode() is what makes the difference between "the bytes have
+       arrived" and "it will paint this frame".
+    2. details, names and rsvp on the first idle callback, while the
+       guest is still reading the cover. They are ready long before
+       anyone taps.
+    3. credits and back only once the card is open, or the moment
+       the pointer touches the Back toggle -- whichever comes first.
+
+  Two guards make the flash impossible rather than merely unlikely:
+  the fold will not start until the three inside panels report done,
+  and the flip will not rotate until the two outer faces do. If
+  either is still in flight the control shows a progress cursor and
+  runs itself as soon as the artwork lands. A missing file resolves
+  rather than rejects, so a bad upload degrades to blank paper
+  instead of a card that will not open.
+
+  While the cover decodes, .stage::before holds the card's exact
+  footprint with a faint shimmer. That is what stops the page
+  reflowing when the artwork appears -- the space is already
+  correct, so nothing moves.
+
+
 FONTS
   The print file uses The Seasons, JimmyScript and XBYas, which
   aren't web-licensed. Substituted with Cormorant Garamond,
@@ -114,6 +147,26 @@ DRIFTING PETALS
   spin and duration so no two follow the same path. Off entirely
   under prefers-reduced-motion. Count is set in petals() in
   invite.js; colour is the fill in the .petal background SVG.
+
+
+FITTING THE SUBSTITUTE TYPE
+  Each line is measured against the width it occupies in the print
+  file and corrected to match. Serif lines are corrected with
+  tracking, which keeps the glyph size honest; script lines are
+  corrected by scaling, because tracking would break the joins.
+
+  The script correction now iterates to convergence instead of
+  applying a single estimate with a floor on it. Sacramento runs
+  much wider than the original JimmyScript, so the one-shot version
+  hit its 0.7 floor and stopped while the RSVP numbers were still
+  wider than the panel -- they hung off both edges on a phone, where
+  the panel is narrowest. It now loops up to five times until the
+  line is within half a percent of the printed width, with generous
+  outer bounds (0.3x to 2.4x) that exist only to catch a missing
+  font, not to limit normal correction.
+
+  If you ever swap a typeface, this is the code that absorbs the
+  difference -- fitOne() in invite.js.
 
 
 BACKGROUND MUSIC
@@ -154,6 +207,16 @@ BACKGROUND MUSIC
   volume. The Music button toggles it and the choice is remembered
   in localStorage. Set AUTOPLAY_ON_OPEN = false in invite.js for
   click-to-play only; VOL next to it is the ceiling.
+
+
+THE TOOLBAR ON PHONES
+  Four actions in one row, never two. The labels shorten on narrow
+  screens -- "Add to calendar" becomes "Calendar", "Directions"
+  becomes "Map" -- and each button flexes to an equal share of the
+  card's width. Below 400px the type and icons step down again.
+  A toolbar that wraps onto a second line reads as a mistake rather
+  than a layout, which is why nowrap is set explicitly rather than
+  left to chance.
 
 
 BOTS, SCRAPERS AND WHAT IS ACTUALLY WORTH DEFENDING

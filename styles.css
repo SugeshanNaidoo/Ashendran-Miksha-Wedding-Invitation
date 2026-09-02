@@ -149,6 +149,28 @@ body::before{
   transition:height var(--fold-ms) var(--ease);
 }
 
+/* holds the card's footprint so nothing reflows when the artwork lands */
+.stage::before{
+  content:"";
+  position:absolute;
+  left:50%;top:50%;
+  width:calc(var(--panel-w) * var(--fit));
+  height:calc(var(--panel-h) * var(--fit));
+  transform:translate(-50%,-50%);
+  border:1px solid rgba(231,210,198,.09);
+  border-radius:3px;
+  background:linear-gradient(105deg,rgba(255,244,236,.02) 30%,rgba(255,244,236,.06) 50%,rgba(255,244,236,.02) 70%);
+  background-size:280% 100%;
+  animation:shimmer 2.1s ease-in-out infinite;
+  transition:opacity 600ms ease;
+  pointer-events:none;
+}
+.stage.is-ready::before{opacity:0;animation:none}
+@keyframes shimmer{
+  from{background-position:150% 0}
+  to  {background-position:-150% 0}
+}
+
 /* pooled light on the floor beneath the card */
 .pool{
   position:absolute;
@@ -183,6 +205,10 @@ body::before{
   transition:transform var(--fold-ms) var(--ease);
   cursor:pointer;
   outline:none;
+  opacity:0;
+}
+.card.is-ready{
+  opacity:1;
   animation:settle 1200ms var(--ease) backwards;
 }
 @keyframes settle{
@@ -240,12 +266,12 @@ body::before{
   background-size:100% 100%;
   background-repeat:no-repeat;
 }
-.panel[data-panel="names"]  {background-image:url("assets/panel-names.jpg")}
-.panel[data-panel="details"]{background-image:url("assets/panel-details.jpg")}
-.panel[data-panel="rsvp"]   {background-image:url("assets/panel-rsvp.jpg")}
-.panel[data-panel="cover"]  {background-image:url("assets/panel-cover.jpg")}
-.panel[data-panel="credits"]{background-image:url("assets/panel-credits.jpg")}
-.panel[data-panel="back"]   {background-image:url("assets/panel-back.jpg")}
+
+/* Artwork is attached by invite.js, not declared here. Six background-image
+   rules meant six parallel downloads on load, and the cover -- the only
+   panel anyone sees first -- is the biggest file, so it routinely arrived
+   last. Now the cover loads alone and everything else follows it. */
+.panel{transition:opacity 300ms ease}
 
 .t{
   position:absolute;
@@ -354,6 +380,7 @@ body::before{
 .open:focus-visible{outline:1px solid var(--gild);outline-offset:6px}
 .open.is-open .open__rule{animation:none;background:rgba(201,162,77,.3);opacity:.55}
 .open[hidden]{display:none}
+.open.is-waiting{opacity:.45;cursor:progress}
 
 /* tray revealed once the card is open */
 .tray{
@@ -398,6 +425,7 @@ body::before{
   transition:background 300ms ease,color 300ms ease;
 }
 .tool:first-child{border-left:0}
+.tool__s{display:none}
 .tool svg{
   width:15px;height:15px;flex:none;
   fill:none;stroke:var(--gild);stroke-width:1.2;
@@ -442,14 +470,27 @@ body::before{
   .pager{display:flex}
   .mute__txt{display:none}
   .mute{padding:7px 11px}
-  .tools{border-radius:12px}
-  .tool{padding:11px 13px;font-size:11px;letter-spacing:.1em}
+  /* one row, never two -- a wrapped toolbar reads as a mistake */
+  .tools{border-radius:12px;flex-wrap:nowrap;width:100%;max-width:var(--panel-w)}
+  .tool{
+    flex:1 1 0;
+    justify-content:center;
+    padding:11px 6px;
+    font-size:10px;
+    letter-spacing:.06em;
+    gap:.45em;
+    white-space:nowrap;
+  }
+  .tool svg{width:14px;height:14px}
+  .tool__l{display:none}
+  .tool__s{display:inline}
   .open{font-size:18px}
 }
 
 @media (max-width:400px){
   .seg__b{min-width:78px;padding:7px 12px;letter-spacing:.2em}
-  .tool span{font-size:10px}
+  .tool{padding:11px 4px;font-size:9px;letter-spacing:.04em}
+  .tool svg{width:13px;height:13px}
 }
 
 @media (prefers-reduced-motion:reduce){

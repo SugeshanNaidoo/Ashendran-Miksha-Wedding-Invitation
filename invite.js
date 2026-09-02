@@ -113,24 +113,39 @@ function build(){
 function fitOne(rec){
   const panelPx = rec.el.parentElement.offsetWidth;   // layout width, unaffected by the 3D transforms
   if (!panelPx) return;
-  const want = rec.target * panelPx;
-  const have = rec.el.offsetWidth;
-  if (!have) return;
+  const want = rec.target * panelPx;                  // the width this line has in print
+  if (!rec.el.offsetWidth) return;
 
+  // Serif lines: keep the type size honest and spend the difference on tracking.
   if (rec.item.fit === 'track'){
+    rec.el.style.letterSpacing = (rec.item.ls || 0) + 'em';
+    const have   = rec.el.offsetWidth;
     const chars  = Math.max(rec.el.textContent.length - 1, 1);
     const fontPx = parseFloat(getComputedStyle(rec.el).fontSize);
-    const extra  = (want - have) / chars / fontPx;      // in em
-    const ls     = (rec.item.ls || 0) + extra;
+    const ls     = (rec.item.ls || 0) + (want - have) / chars / fontPx;
     if (ls > -0.06 && ls < 0.32){
       rec.el.style.letterSpacing = ls.toFixed(4) + 'em';
       rec.el.style.transform = `translate(-50%,-50%) translateX(${(ls * fontPx) / 2}px)`;
       return;
     }
+    rec.el.style.letterSpacing = (rec.item.ls || 0) + 'em';   // too much tracking; scale instead
   }
-  // script faces, or tracking that would look wrong: scale the glyphs instead
-  const k = Math.min(Math.max(want / have, 0.7), 1.45);
-  rec.el.style.fontSize = (rec.item.s / rec.P.w * 100 * k) + 'cqw';
+
+  /* Script faces: scale the glyphs to the printed width. This converges
+     rather than guessing, because the substitute faces differ from the
+     originals by more than a single correction can cover -- Sacramento
+     runs much wider than JimmyScript, and a one-shot estimate left the
+     RSVP numbers hanging off both edges of the panel. */
+  const base = rec.item.s / rec.P.w * 100;            // cqw, the printed size
+  let size = base;
+  for (let i = 0; i < 5; i++){
+    rec.el.style.fontSize = size.toFixed(4) + 'cqw';
+    const have = rec.el.offsetWidth;
+    if (!have) break;
+    const ratio = want / have;
+    if (Math.abs(ratio - 1) < 0.005) break;
+    size = Math.min(Math.max(size * ratio, base * 0.3), base * 2.4);
+  }
 }
 
 function fit(){ built.forEach(fitOne); }
@@ -155,6 +170,57 @@ function revealContacts(){
     rec.el.setAttribute('href', atob(rec.item.encHref));
     fitOne(rec);
   }
+}
+
+/* ---------- artwork loading ----------
+   Six panels used to download in parallel the moment the page opened.
+   Only one of them is visible at that point -- the cover -- and it is
+   the largest file, so it regularly lost the race and the card popped
+   from blank paper to artwork in front of the guest.
+
+   Now: the cover loads by itself and the card is not shown until it
+   has decoded. The inside panels follow while the guest is reading the
+   cover, and the two outer faces are fetched only if the flip is
+   likely. Nothing is ever revealed before its artwork is on screen. */
+
+const ART = {
+  cover:   'assets/panel-cover.jpg',
+  details: 'assets/panel-details.jpg',
+  names:   'assets/panel-names.jpg',
+  rsvp:    'assets/panel-rsvp.jpg',
+  credits: 'assets/panel-credits.jpg',
+  back:    'assets/panel-back.jpg'
+};
+
+const art = {};
+const artDone = {};
+
+function loadArt(name){
+  if (art[name]) return art[name];
+  const el = document.querySelector(`.panel[data-panel="${name}"]`);
+  art[name] = new Promise(resolve => {
+    if (!el) return resolve();
+    const img = new Image();
+    const done = () => {
+      el.style.backgroundImage = `url("${ART[name]}")`;
+      artDone[name] = true;
+      resolve();
+    };
+    img.onload = () => (img.decode ? img.decode().then(done, done) : done());
+    img.onerror = done;                       // a missing file must not wedge the card
+    img.src = ART[name];
+  });
+  return art[name];
+}
+
+const INSIDE = ['details', 'names', 'rsvp'];
+const OUTSIDE = ['credits', 'back'];
+
+function loadAll(names){ return Promise.all(names.map(loadArt)); }
+
+function idle(fn){
+  if ('requestIdleCallback' in window) requestIdleCallback(fn, { timeout: 2500 });
+  else setTimeout(fn, 900);
 }
 
 /* ---------- sizing ---------- */
@@ -278,7 +344,16 @@ function step(){ return reduce.matches ? 0 : 760; }
 
 function openCard(){
   if (opened || busy) return;
+
+  // never start the fold onto artwork that has not arrived
+  if (!INSIDE.every(n => art[n] && artDone[n])){
+    opener.classList.add('is-waiting');
+    loadAll(INSIDE).then(() => { opener.classList.remove('is-waiting'); openCard(); });
+    return;
+  }
+
   busy = true; opened = true;
+  idle(() => loadAll(OUTSIDE));               // the flip is plausible from here
 
   label.textContent = 'Fold it away';
   opener.setAttribute('aria-expanded', 'true');
@@ -358,7 +433,17 @@ function showSide(side){
   });
 }
 
-segB.forEach(b => b.addEventListener('click', () => showSide(b.dataset.side)));
+segB.forEach(b => {
+  b.addEventListener('click', () => {
+    const need = b.dataset.side === 'back' ? OUTSIDE : INSIDE;
+    if (need.every(n => artDone[n])) return showSide(b.dataset.side);
+    b.classList.add('is-waiting');
+    loadAll(need).then(() => { b.classList.remove('is-waiting'); showSide(b.dataset.side); });
+  });
+  // start fetching as soon as the pointer lands, so the click feels instant
+  b.addEventListener('pointerenter', () => loadAll(b.dataset.side === 'back' ? OUTSIDE : INSIDE));
+  b.addEventListener('focus', () => loadAll(b.dataset.side === 'back' ? OUTSIDE : INSIDE));
+});
 showSide('front');
 labels();
 
@@ -540,6 +625,13 @@ function calendar(){
 build();
 layout();
 petals();
+
+const stage = document.querySelector('.stage');
+loadArt('cover').then(() => {
+  stage.classList.add('is-ready');
+  card.classList.add('is-ready');
+  idle(() => loadAll(INSIDE));                // ready long before anyone taps
+});
 countdown();
 calendar();
 
