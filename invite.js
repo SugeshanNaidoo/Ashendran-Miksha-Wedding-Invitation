@@ -218,11 +218,6 @@ const OUTSIDE = ['credits', 'back'];
 
 function loadAll(names){ return Promise.all(names.map(loadArt)); }
 
-function idle(fn){
-  if ('requestIdleCallback' in window) requestIdleCallback(fn, { timeout: 2500 });
-  else setTimeout(fn, 900);
-}
-
 /* ---------- sizing ---------- */
 
 const card  = document.getElementById('card');
@@ -353,7 +348,6 @@ function openCard(){
   }
 
   busy = true; opened = true;
-  idle(() => loadAll(OUTSIDE));               // the flip is plausible from here
 
   label.textContent = 'Fold it away';
   opener.setAttribute('aria-expanded', 'true');
@@ -627,15 +621,38 @@ layout();
 petals();
 
 const stage = document.querySelector('.stage');
-loadArt('cover').then(() => {
+
+/* One wait, at the door. Every panel is fetched in parallel and the card
+   is not shown until they have all decoded, so nothing after this point
+   can ever reveal blank paper -- not the fold, not the flip, not a swipe.
+   The cover still carries fetchpriority=high so it lands first and the
+   progress line moves immediately rather than sitting at zero.
+
+   The lazy machinery is kept, not replaced: loadArt() still resolves once
+   per panel and the fold and flip still check before they run. With
+   everything preloaded those checks are no-ops, but they are what stops a
+   slow connection or a failed request turning into a broken card. */
+
+const ALL = Object.keys(ART);
+let ready = 0;
+
+function progress(){
+  ready++;
+  root.style.setProperty('--load', (ready / ALL.length).toFixed(3));
+}
+
+function reveal(){
+  if (stage.classList.contains('is-ready')) return;
   stage.classList.add('is-ready');
   card.classList.add('is-ready');
-  idle(() => loadAll(INSIDE));                // ready long before anyone taps
-});
-countdown();
-calendar();
+}
 
-(document.fonts ? document.fonts.ready : Promise.resolve()).then(fit);
+ALL.forEach(n => loadArt(n).then(progress));
 
-let t;
-addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => { layout(); fit(); }, 120); });
+// everything decoded -- the normal path, typically well under a second
+loadAll(ALL).then(reveal);
+
+/* Safety valve: if one file is slow or missing, show the card as soon as
+   the cover is up rather than holding a guest on a loading screen. The
+   per-action checks take over from there. */
+loadArt('cover').then(() => setTimeout(reveal, 4000));

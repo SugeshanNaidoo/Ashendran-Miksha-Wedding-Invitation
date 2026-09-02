@@ -5,6 +5,7 @@
 
 :root{
   --pan:0px;
+  --load:0;
   /* ink lifted from the print file */
   --ink-maroon:#5e0018;
   --ink-brown:#331502;
@@ -167,6 +168,22 @@ body::before{
   pointer-events:none;
 }
 .stage.is-ready::before{opacity:0;animation:none}
+
+/* how far the artwork has got, drawn along the foot of the placeholder */
+.stage::after{
+  content:"";
+  position:absolute;
+  left:calc(50% - (var(--panel-w) * var(--fit) * 0.25));
+  top:calc(50% + (var(--panel-h) * var(--fit)) / 2 + 14px);
+  width:calc(var(--panel-w) * var(--fit) * 0.5);
+  height:1px;
+  transform:scaleX(var(--load));
+  transform-origin:left center;
+  background:linear-gradient(90deg,rgba(201,162,77,.25),var(--gild));
+  transition:transform 420ms var(--ease),opacity 500ms ease;
+  pointer-events:none;
+}
+.stage.is-ready::after{opacity:0}
 @keyframes shimmer{
   from{background-position:150% 0}
   to  {background-position:-150% 0}

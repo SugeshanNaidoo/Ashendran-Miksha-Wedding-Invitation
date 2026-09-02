@@ -86,67 +86,40 @@ SMALL SCREENS
   so it adapts from a small Android up to a tablet without any
   breakpoint tuning.
 
-LOADING ORDER
-  All six panels used to be declared as background-image rules in the
-  stylesheet, so the browser fetched all six the moment the page
-  opened. Only one of them is visible at that point -- the cover --
-  and at 274KB it is the largest file, so it regularly lost the race
-  and the card popped from blank paper to artwork while the guest
-  was looking at it.
+LOADING
+  One wait, at the door, and then nothing waits again.
 
-  Now nothing about the artwork is in the CSS. invite.js loads:
-    1. the cover, alone, with fetchpriority=high. The card stays at
-       opacity 0 until it has fully DECODED, not merely downloaded --
-       decode() is what makes the difference between "the bytes have
-       arrived" and "it will paint this frame".
-    2. details, names and rsvp on the first idle callback, while the
-       guest is still reading the cover. They are ready long before
-       anyone taps.
-    3. credits and back only once the card is open, or the moment
-       the pointer touches the Back toggle -- whichever comes first.
+  All six panels are preloaded from the HTML head and fetched in
+  parallel. The card stays at opacity 0 until every one of them has
+  DECODED -- not merely downloaded. decode() is the difference
+  between "the bytes arrived" and "this will paint on the next
+  frame", and it is what stops a panel appearing mid-animation.
 
-  Two guards make the flash impossible rather than merely unlikely:
-  the fold will not start until the three inside panels report done,
-  and the flip will not rotate until the two outer faces do. If
-  either is still in flight the control shows a progress cursor and
-  runs itself as soon as the artwork lands. A missing file resolves
-  rather than rejects, so a bad upload degrades to blank paper
-  instead of a card that will not open.
+  The cover keeps fetchpriority=high. It is the file most likely to
+  finish first, which means the progress line moves straight away
+  instead of sitting at zero while the browser works through the
+  others -- the wait feels shorter even though it is the same
+  length.
 
-  While the cover decodes, .stage::before holds the card's exact
-  footprint with a faint shimmer. That is what stops the page
-  reflowing when the artwork appears -- the space is already
-  correct, so nothing moves.
+  While that happens, .stage::before holds the card's exact
+  footprint with a faint shimmer and a hairline under it fills left
+  to right as each panel lands. Because the space is already the
+  right size, nothing reflows when the artwork appears.
 
+  THE LAZY MACHINERY IS KEPT, NOT REPLACED. loadArt() still resolves
+  once per panel, and the fold and the flip still check that what
+  they are about to reveal has arrived. With everything preloaded
+  those checks never fire -- but they are what stops a slow
+  connection or a single failed request turning into a blank card
+  mid-fold. There is also a safety valve: if one file stalls, the
+  card is shown 4 seconds after the cover is ready rather than
+  holding a guest on a loading screen, and the per-action checks
+  take over from there. A missing file resolves rather than
+  rejects, so a bad upload degrades to blank paper, never to a card
+  that will not open.
 
-FONTS
-  The print file uses The Seasons, JimmyScript and XBYas, which
-  aren't web-licensed. Substituted with Cormorant Garamond,
-  Sacramento, Parisienne and Lora from Google Fonts. Each line is
-  auto-fitted to the exact printed width on load, so line lengths
-  match the card even though the letterforms differ slightly.
-  If you own webfont licences for the originals, drop the .woff2
-  files in assets/ , add @font-face rules, and change the SERIF /
-  SCRIPT constants at the top of invite.js.
-
-PERSONALISING THE ADM LINE
-  index.html?adm=The%20Naidoo%20Family
-  fills the blank instead of the printed underline. No parameter,
-  no change — it renders exactly as printed.
-
-REMOVING THE EXTRAS
-  The countdown, calendar, directions and call buttons live in
-  <div class="tray"> in index.html. Delete that block and the
-  card is a pure reproduction of the print piece. The side toggle
-  is <div class="seg">.
-
-DRIFTING PETALS
-  Drawn (an inline SVG shape in styles.css), not photographed. A
-  cut-out photo petal looked like a cut-out photo at 12px. 10 on
-  desktop, 6 on mobile, each with its own randomised size, drift,
-  spin and duration so no two follow the same path. Off entirely
-  under prefers-reduced-motion. Count is set in petals() in
-  invite.js; colour is the fill in the .petal background SVG.
+  Total artwork is about 1MB. On anything better than 3G the wait
+  is a few hundred milliseconds; the shimmer is often barely seen.
 
 
 FITTING THE SUBSTITUTE TYPE
