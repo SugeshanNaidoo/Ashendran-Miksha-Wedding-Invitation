@@ -585,40 +585,128 @@ function revealTools(){
 /* ---------- countdown + calendar ---------- */
 
 const WEDDING = new Date('2026-12-06T13:30:00+02:00');
+const DUR_H   = 3;                                  // ceremony length, for the calendar entry
+
+const units = {};
+document.querySelectorAll('.unit__n').forEach(el => { units[el.dataset.u] = el; });
+const meter = document.getElementById('meter');
+
+let ticker = null;
 
 function countdown(){
-  const n = document.getElementById('countN');
-  const l = document.getElementById('countL');
-  const days = Math.ceil((WEDDING - Date.now()) / 86400000);
+  let ms = WEDDING - Date.now();
 
-  if (days > 1){ n.textContent = days; l.textContent = 'days to go'; }
-  else if (days === 1){ n.textContent = '1'; l.textContent = 'day to go'; }
-  else if (days === 0){ n.textContent = 'Today'; l.textContent = 'is the day'; }
-  else { n.textContent = 'Married'; l.textContent = 'with love'; }
+  if (ms <= 0){
+    meter.classList.add('is-done');
+    const past = -ms < DUR_H * 3600000;
+    meter.textContent = past ? 'Today' : 'Married, with love';
+    if (ticker) clearInterval(ticker);
+    return;
+  }
+
+  const d = Math.floor(ms / 86400000); ms -= d * 86400000;
+  const h = Math.floor(ms / 3600000);  ms -= h * 3600000;
+  const m = Math.floor(ms / 60000);    ms -= m * 60000;
+  const sec = Math.floor(ms / 1000);
+
+  units.d.textContent = d;
+  units.h.textContent = String(h).padStart(2, '0');
+  units.m.textContent = String(m).padStart(2, '0');
+  units.s.textContent = String(sec).padStart(2, '0');
 }
 
-function calendar(){
-  const stamp = d => d.toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
+function startTicker(){
+  countdown();
+  if (ticker) clearInterval(ticker);
+  ticker = setInterval(countdown, 1000);
+}
+
+/* A background tab throttles or suspends the interval, so the clock is
+   rebuilt from the real time on return rather than resumed from where
+   it stalled -- that is what makes it drift and look frozen. */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden){ if (ticker) clearInterval(ticker); ticker = null; }
+  else startTicker();
+});
+
+/* ---------- calendar ---------- */
+
+const EVENT = {
+  title: 'Wedding of Ashendran Naidoo and Miksha Ravjee',
+  place: 'Cato Manor Hindu Temple, 588 Vusi Mzimela Rd, Durban, 4091',
+  notes: 'Two souls. One promise.'
+};
+
+function utc(d){ return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'; }
+const ENDS = new Date(WEDDING.getTime() + DUR_H * 3600000);
+
+function googleUrl(){
+  const q = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: EVENT.title,
+    dates: `${utc(WEDDING)}/${utc(ENDS)}`,
+    details: `${EVENT.notes}\n\n${location.href}`,
+    location: EVENT.place,
+    ctz: 'Africa/Johannesburg'
+  });
+  return 'https://calendar.google.com/calendar/render?' + q.toString();
+}
+
+function icsUrl(){
   const ics = [
-    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Alba Designs//Wedding//EN','BEGIN:VEVENT',
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Alba Designs//Wedding//EN','CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
     'UID:ashendran-miksha-2026@albasdesigns.com',
-    'DTSTAMP:' + stamp(new Date()),
-    'DTSTART:' + stamp(WEDDING),
-    'DTEND:'   + stamp(new Date(WEDDING.getTime() + 3 * 3600000)),
-    'SUMMARY:Wedding of Ashendran Naidoo and Miksha Ravjee',
-    'LOCATION:Cato Manor Hindu Temple\\, 588 Vusi Mzimela Rd\\, Durban\\, 4091',
-    'DESCRIPTION:Two souls. One promise.',
+    'DTSTAMP:' + utc(new Date()),
+    'DTSTART:' + utc(WEDDING),
+    'DTEND:'   + utc(ENDS),
+    'SUMMARY:' + EVENT.title,
+    'LOCATION:' + EVENT.place.replace(/,/g, '\\,'),
+    'DESCRIPTION:' + EVENT.notes,
     'END:VEVENT','END:VCALENDAR'
   ].join('\r\n');
-  document.getElementById('ics').href =
-    URL.createObjectURL(new Blob([ics], { type:'text/calendar' }));
+  return URL.createObjectURL(new Blob([ics], { type:'text/calendar' }));
 }
+
+/* Two options rather than one. Google covers Android and anyone signed in;
+   the .ics is what opens Apple Calendar natively on an iPhone, and Outlook
+   on a desktop. Guessing wrong sends a guest to a sign-in page. */
+const calBtn  = document.getElementById('calBtn');
+const calMenu = document.getElementById('calMenu');
+
+function calendar(){
+  document.getElementById('calGoogle').href = googleUrl();
+  document.getElementById('calIcs').href = icsUrl();
+}
+
+function closeCal(){
+  calMenu.hidden = true;
+  calMenu.classList.remove('is-in');
+  calBtn.setAttribute('aria-expanded', 'false');
+}
+
+calBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  if (!calMenu.hidden) return closeCal();
+  calendar();                                  // refresh DTSTAMP and the page url
+  calMenu.hidden = false;
+  requestAnimationFrame(() => calMenu.classList.add('is-in'));
+  calBtn.setAttribute('aria-expanded', 'true');
+});
+
+calMenu.addEventListener('click', e => { if (e.target.closest('a')) closeCal(); });
+document.addEventListener('click', e => {
+  if (!calMenu.hidden && !e.target.closest('.calmenu') && !e.target.closest('#calBtn')) closeCal();
+});
+addEventListener('keydown', e => { if (e.key === 'Escape' && !calMenu.hidden) closeCal(); });
 
 /* ---------- go ---------- */
 
 build();
 layout();
 petals();
+startTicker();
+calendar();
 
 const stage = document.querySelector('.stage');
 

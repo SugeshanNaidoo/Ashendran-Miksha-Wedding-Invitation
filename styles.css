@@ -411,16 +411,43 @@ body::before{
 }
 .tray.is-in{opacity:1;transform:none}
 
-.meter{margin:0;display:flex;align-items:baseline;gap:.6em}
-.meter__n{
+.meter{
+  margin:0;
+  display:flex;
+  align-items:flex-end;
+  gap:clamp(14px,3.6vw,26px);
+}
+.meter.is-done{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(20px,3vh,26px);
+  font-weight:300;
+  letter-spacing:.16em;
+  color:var(--blush);
+}
+.unit{display:flex;flex-direction:column;align-items:center;gap:.35em;position:relative}
+.unit + .unit::before{
+  content:"";
+  position:absolute;
+  left:calc(clamp(14px,3.6vw,26px) / -2);
+  top:12%;bottom:34%;
+  width:1px;
+  background:rgba(231,210,198,.13);
+}
+.unit__n{
   font-family:'Cormorant Garamond',serif;
   font-size:clamp(26px,3.6vh,38px);
   font-weight:300;
+  line-height:1;
   color:var(--blush);
   font-variant-numeric:tabular-nums;
-  line-height:1;
+  font-feature-settings:"tnum";
 }
-.meter__l{font-size:10px;letter-spacing:.34em;text-transform:uppercase;color:var(--mute)}
+.unit__l{
+  font-size:9px;
+  letter-spacing:.3em;
+  text-transform:uppercase;
+  color:var(--mute);
+}
 
 .tools{
   display:flex;
@@ -452,6 +479,46 @@ body::before{
 }
 .tool:hover,.tool:focus-visible{background:rgba(201,162,77,.11);color:#fff;outline:none}
 .tool:hover svg{stroke:#e2bd7a}
+
+.tray{position:relative}
+
+.calmenu{
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 10px);
+  transform:translateX(-50%) translateY(6px);
+  display:flex;
+  flex-direction:column;
+  min-width:210px;
+  border:1px solid rgba(231,210,198,.13);
+  border-radius:12px;
+  background:rgba(24,16,18,.94);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  box-shadow:0 18px 40px -14px rgba(0,0,0,.8);
+  overflow:hidden;
+  opacity:0;
+  transition:opacity 260ms ease,transform 260ms var(--ease);
+  z-index:4;
+}
+.calmenu.is-in{opacity:1;transform:translateX(-50%) translateY(0)}
+.calmenu[hidden]{display:none}
+.calmenu__o{
+  padding:13px 18px;
+  color:var(--blush);
+  text-decoration:none;
+  font-size:12px;
+  letter-spacing:.1em;
+  border-top:1px solid rgba(231,210,198,.08);
+  transition:background 260ms ease;
+}
+.calmenu__o:first-child{border-top:0}
+.calmenu__o:hover,.calmenu__o:focus-visible{background:rgba(201,162,77,.12);outline:none}
+
+/* the calendar entry is a button now, so it needs the anchor's reset */
+button.tool{border:0;background:none;font-family:inherit;cursor:pointer}
+button.tool{border-left:1px solid rgba(231,210,198,.08)}
+.tools > :first-child{border-left:0}
 
 .sig{
   position:fixed;left:0;right:0;bottom:0;
@@ -495,7 +562,47 @@ body::before{
     padding:72px 10px 20px;
     gap:clamp(16px,3vh,26px);
   }
-  .sig{
+  .tray{position:relative}
+
+.calmenu{
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 10px);
+  transform:translateX(-50%) translateY(6px);
+  display:flex;
+  flex-direction:column;
+  min-width:210px;
+  border:1px solid rgba(231,210,198,.13);
+  border-radius:12px;
+  background:rgba(24,16,18,.94);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  box-shadow:0 18px 40px -14px rgba(0,0,0,.8);
+  overflow:hidden;
+  opacity:0;
+  transition:opacity 260ms ease,transform 260ms var(--ease);
+  z-index:4;
+}
+.calmenu.is-in{opacity:1;transform:translateX(-50%) translateY(0)}
+.calmenu[hidden]{display:none}
+.calmenu__o{
+  padding:13px 18px;
+  color:var(--blush);
+  text-decoration:none;
+  font-size:12px;
+  letter-spacing:.1em;
+  border-top:1px solid rgba(231,210,198,.08);
+  transition:background 260ms ease;
+}
+.calmenu__o:first-child{border-top:0}
+.calmenu__o:hover,.calmenu__o:focus-visible{background:rgba(201,162,77,.12);outline:none}
+
+/* the calendar entry is a button now, so it needs the anchor's reset */
+button.tool{border:0;background:none;font-family:inherit;cursor:pointer}
+button.tool{border-left:1px solid rgba(231,210,198,.08)}
+.tools > :first-child{border-left:0}
+
+.sig{
     position:static;
     padding:26px 14px 34px;
     pointer-events:auto;
@@ -507,14 +614,20 @@ body::before{
   .tools{border-radius:12px;flex-wrap:nowrap;width:100%;max-width:var(--panel-w)}
   .tool{
     flex:1 1 0;
+    min-width:0;
     justify-content:center;
-    padding:11px 6px;
-    font-size:10px;
-    letter-spacing:.06em;
-    gap:.45em;
+    /* 48px tall: the height is what makes a target easy to hit, and it
+       costs nothing horizontally, so the row still fits on one line */
+    min-height:48px;
+    padding:14px 5px;
+    font-size:11px;
+    letter-spacing:.05em;
+    gap:.42em;
     white-space:nowrap;
   }
-  .tool svg{width:14px;height:14px}
+  .tool svg{width:15px;height:15px}
+  .unit__l{font-size:8px;letter-spacing:.24em}
+  .calmenu{min-width:190px}
   .tool__l{display:none}
   .tool__s{display:inline}
   .open{font-size:18px}
@@ -522,8 +635,9 @@ body::before{
 
 @media (max-width:400px){
   .seg__b{min-width:78px;padding:7px 12px;letter-spacing:.2em}
-  .tool{padding:11px 4px;font-size:9px;letter-spacing:.04em}
-  .tool svg{width:13px;height:13px}
+  .tool{padding:14px 3px;font-size:10px;letter-spacing:.02em;gap:.3em}
+  .tool svg{width:14px;height:14px}
+  .meter{gap:12px}
 }
 
 @media (prefers-reduced-motion:reduce){

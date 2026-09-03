@@ -144,15 +144,17 @@
     </div>
 
     <div class="tray" id="tray" hidden>
-      <p class="meter">
-        <span class="meter__n" id="countN">—</span>
-        <span class="meter__l" id="countL">days to go</span>
+      <p class="meter" id="meter">
+        <span class="unit"><span class="unit__n" data-u="d">—</span><span class="unit__l">days</span></span>
+        <span class="unit"><span class="unit__n" data-u="h">—</span><span class="unit__l">hrs</span></span>
+        <span class="unit"><span class="unit__n" data-u="m">—</span><span class="unit__l">min</span></span>
+        <span class="unit"><span class="unit__n" data-u="s">—</span><span class="unit__l">sec</span></span>
       </p>
       <nav class="tools" aria-label="Invitation actions">
-        <a class="tool" id="ics" href="#" download="Ashendran-and-Miksha.ics">
+        <button class="tool" id="calBtn" type="button" aria-expanded="false" aria-controls="calMenu">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3.5v4M16 3.5v4"/></svg>
           <span class="tool__l">Add to calendar</span><span class="tool__s">Calendar</span>
-        </a>
+        </button>
         <a class="tool" href="https://www.google.com/maps/search/?api=1&query=Cato+Manor+Hindu+Temple%2C+588+Vusi+Mzimela+Rd%2C+Durban%2C+4091" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg>
           <span class="tool__l">Directions</span><span class="tool__s">Map</span>
@@ -166,6 +168,11 @@
           <span class="tool__l">Bride</span><span class="tool__s">Bride</span>
         </a>
       </nav>
+
+      <div class="calmenu" id="calMenu" hidden>
+        <a class="calmenu__o" id="calGoogle" href="#" target="_blank" rel="noopener">Google Calendar</a>
+        <a class="calmenu__o" id="calIcs" href="#" download="Ashendran-and-Miksha.ics">Apple &middot; Outlook &middot; other</a>
+      </div>
     </div>
 
   </section>
