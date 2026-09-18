@@ -101,46 +101,62 @@ function build(){
 
     host.appendChild(el);
     // sizes are fractions of the panel width, resolved to px at fit time
-    built.push({ el, item, P, target: (x1 - x0) / P.w, baseMul: item.s / P.w });
+    const rec = { el, item, P, target: (x1 - x0) / P.w, baseMul: item.s / P.w };
+    el.style.fontSize = (rec.baseMul * (P.w)) + 'px';   // provisional; fit() corrects it
+    built.push(rec);
   }
 }
 
 /* Match the printed line widths once the real fonts have loaded. */
+/* How much wider than the printed line a substitute face may run before it
+   gets scaled down. Matching the printed width EXACTLY was the mistake:
+   Cormorant and Sacramento are wider per glyph than The Seasons and
+   JimmyScript, so forcing the width forced the size down, and Venue, the
+   date and the "and" all shrank. Optical size matters more than width for
+   the display lines. Scaling is now a last resort against overflow, not
+   the default behaviour. Nudge these two numbers if a line sits wrong. */
+const WIDEN = { track: 1.04, size: 1.28 };
+const PANEL_SAFE = 0.93;                       // nothing may touch the panel edge
+
 function fitOne(rec){
   const panelPx = rec.el.parentElement.offsetWidth;   // layout width, unaffected by the 3D transforms
   if (!panelPx) return;
   const want   = rec.target * panelPx;                // the width this line has in print
-  const basePx = rec.baseMul * panelPx;               // the size it has in print
+  const basePx = rec.baseMul * panelPx;               // the SIZE it has in print
+  const mode   = rec.item.fit === 'track' ? 'track' : 'size';
+  const maxW   = Math.min(want * WIDEN[mode], panelPx * PANEL_SAFE);
 
   rec.el.style.fontSize = basePx.toFixed(3) + 'px';
   rec.el.style.letterSpacing = (rec.item.ls || 0) + 'em';
   rec.el.style.transform = 'translate(-50%,-50%)';
   if (!rec.el.offsetWidth) return;
 
-  // Serif lines: keep the type size honest and spend the difference on tracking.
-  if (rec.item.fit === 'track'){
+  /* Serif lines: hold the type size and spend the difference on tracking.
+     This is the branch that reproduces the print faithfully, so its width
+     tolerance stays tight. */
+  if (mode === 'track'){
     const have  = rec.el.offsetWidth;
     const chars = Math.max(rec.el.textContent.length - 1, 1);
     const ls    = (rec.item.ls || 0) + (want - have) / chars / basePx;
-    if (ls > -0.06 && ls < 0.32){
+    if (ls > -0.10 && ls < 0.30){
       rec.el.style.letterSpacing = ls.toFixed(4) + 'em';
       rec.el.style.transform = 'translate(-50%,-50%) translateX(' + ((ls * basePx) / 2).toFixed(2) + 'px)';
-      return;
+      if (rec.el.offsetWidth <= maxW) return;
+      rec.el.style.letterSpacing = (rec.item.ls || 0) + 'em';   // still too wide: scale below
+      rec.el.style.transform = 'translate(-50%,-50%)';
+    } else {
+      rec.el.style.letterSpacing = (rec.item.ls || 0) + 'em';   // tracking can't cover it
     }
-    rec.el.style.letterSpacing = (rec.item.ls || 0) + 'em';   // too much tracking; scale instead
   }
 
-  /* Script faces: scale the glyphs to the printed width. This converges
-     rather than guessing, because the substitute faces differ from the
-     originals by more than a single correction can cover. */
+  /* Keep the printed size unless the line would overflow, then shrink it
+     only as far as it has to go. */
   let px = basePx;
   for (let i = 0; i < 5; i++){
     rec.el.style.fontSize = px.toFixed(3) + 'px';
     const have = rec.el.offsetWidth;
-    if (!have) break;
-    const ratio = want / have;
-    if (Math.abs(ratio - 1) < 0.005) break;
-    px = Math.min(Math.max(px * ratio, basePx * 0.3), basePx * 2.4);
+    if (!have || have <= maxW) break;
+    px = Math.max(px * (maxW / have), basePx * 0.4);
   }
 }
 
