@@ -762,6 +762,11 @@ function reveal(){
   if (stage.classList.contains('is-ready')) return;
   stage.classList.add('is-ready');
   card.classList.add('is-ready');
+  /* Measure again now the card is really on screen. On a phone the first
+     pass can run before the viewport has settled -- the URL bar alone
+     changes the available height -- and a px-based fit that measured too
+     early would stay wrong until the next resize. */
+  requestAnimationFrame(() => { layout(); fit(); });
 }
 
 ALL.forEach(n => loadArt(n).then(progress));
@@ -773,3 +778,41 @@ loadAll(ALL).then(reveal);
    the cover is up rather than holding a guest on a loading screen. The
    per-action checks take over from there. */
 loadArt('cover').then(() => setTimeout(reveal, 4000));
+
+/* ---------- keep the fit honest when the viewport moves ----------
+   This block was lost in an earlier rewrite, and its absence is why the
+   type looked right on desktop and wrong on a phone. Sizes are px now, so
+   they are only correct for the panel width they were measured against.
+   A phone changes that width constantly -- rotation, the URL bar sliding
+   away, the keyboard, a split view -- and with nothing listening, the
+   first measurement stood for the whole session. */
+
+/* The webfont pass. This was lost in the same rewrite: the type has to be
+   measured against the REAL faces, not the fallback, or every line is
+   fitted to the wrong widths. */
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(reflow);
+
+let reflowTimer = null;
+
+function reflow(){
+  layout();
+  fit();
+}
+
+function scheduleReflow(delay){
+  clearTimeout(reflowTimer);
+  reflowTimer = setTimeout(reflow, delay);
+}
+
+addEventListener('resize', () => scheduleReflow(120));
+addEventListener('orientationchange', () => scheduleReflow(220));
+
+/* iOS reports the URL bar collapsing here rather than as a window resize. */
+if (window.visualViewport){
+  visualViewport.addEventListener('resize', () => scheduleReflow(160));
+}
+
+/* Webfonts can settle after fonts.ready on a slow connection, and a phone
+   is where that happens. Two late passes cost nothing and remove the
+   window where a line is measured against a fallback face. */
+addEventListener('load', () => { scheduleReflow(60); setTimeout(reflow, 900); });
