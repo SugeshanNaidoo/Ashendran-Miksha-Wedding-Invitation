@@ -65,7 +65,6 @@ const TEXT = [
     enc:'R3Jvb20gOiAwODIgLSA3NzEgLSA1ODc5', encHref:'dGVsOisyNzgyNzcxNTg3OQ==' },
   { p:'rsvp', t:'Bride : 000 - 000 - 0000', b:[785,178,1072,228], f:SCRIPT, s:37.6, c:GOLD, fit:'size',
     enc:'QnJpZGUgOiAwNjIgLSA3NzggLSAyMTIy', encHref:'dGVsOisyNzYyNzc4MjEyMg==' },
-  { p:'rsvp', t:'ADM : ________', b:[867,237,991,261], f:SERIF, s:16.5, c:MAROON, i:1, ls:.02, fit:'track', id:'adm' },
   { p:'rsvp', t:'Your presence would be greatly appreciated', b:[780,274,1078,290], f:SERIF, s:12.5, c:MAROON, fit:'track' }
 ];
 
@@ -74,9 +73,6 @@ const TEXT = [
 const built = [];
 
 function build(){
-  // optional personalisation:  invite.html?adm=The Naidoo Family
-  const guest = new URLSearchParams(location.search).get('adm');
-
   for (const item of TEXT){
     const host = document.querySelector(`.panel[data-panel="${item.p}"]`);
     if (!host) continue;
@@ -88,7 +84,7 @@ function build(){
 
     const el = document.createElement(item.href || item.encHref ? 'a' : 'span');
     el.className = 't' + (item.href || item.encHref ? ' t--link' : '');
-    el.textContent = (item.id === 'adm' && guest) ? `ADM : ${guest}` : item.t;
+    el.textContent = item.t;
     if (item.href){
       el.href = item.href;
       if (item.href.startsWith('http')){ el.target = '_blank'; el.rel = 'noopener'; }
@@ -100,12 +96,12 @@ function build(){
     el.style.fontWeight = item.w || 400;
     el.style.fontStyle  = item.i ? 'italic' : 'normal';
     el.style.color = item.c;
-    el.style.fontSize = (item.s / P.w * 100) + 'cqw';
     if (item.ls) el.style.letterSpacing = item.ls + 'em';
     el.style.transform = 'translate(-50%,-50%)';
 
     host.appendChild(el);
-    built.push({ el, item, P, target: (x1 - x0) / P.w });   // target width as a fraction of the panel
+    // sizes are fractions of the panel width, resolved to px at fit time
+    built.push({ el, item, P, target: (x1 - x0) / P.w, baseMul: item.s / P.w });
   }
 }
 
@@ -113,19 +109,22 @@ function build(){
 function fitOne(rec){
   const panelPx = rec.el.parentElement.offsetWidth;   // layout width, unaffected by the 3D transforms
   if (!panelPx) return;
-  const want = rec.target * panelPx;                  // the width this line has in print
+  const want   = rec.target * panelPx;                // the width this line has in print
+  const basePx = rec.baseMul * panelPx;               // the size it has in print
+
+  rec.el.style.fontSize = basePx.toFixed(3) + 'px';
+  rec.el.style.letterSpacing = (rec.item.ls || 0) + 'em';
+  rec.el.style.transform = 'translate(-50%,-50%)';
   if (!rec.el.offsetWidth) return;
 
   // Serif lines: keep the type size honest and spend the difference on tracking.
   if (rec.item.fit === 'track'){
-    rec.el.style.letterSpacing = (rec.item.ls || 0) + 'em';
-    const have   = rec.el.offsetWidth;
-    const chars  = Math.max(rec.el.textContent.length - 1, 1);
-    const fontPx = parseFloat(getComputedStyle(rec.el).fontSize);
-    const ls     = (rec.item.ls || 0) + (want - have) / chars / fontPx;
+    const have  = rec.el.offsetWidth;
+    const chars = Math.max(rec.el.textContent.length - 1, 1);
+    const ls    = (rec.item.ls || 0) + (want - have) / chars / basePx;
     if (ls > -0.06 && ls < 0.32){
       rec.el.style.letterSpacing = ls.toFixed(4) + 'em';
-      rec.el.style.transform = `translate(-50%,-50%) translateX(${(ls * fontPx) / 2}px)`;
+      rec.el.style.transform = 'translate(-50%,-50%) translateX(' + ((ls * basePx) / 2).toFixed(2) + 'px)';
       return;
     }
     rec.el.style.letterSpacing = (rec.item.ls || 0) + 'em';   // too much tracking; scale instead
@@ -133,18 +132,15 @@ function fitOne(rec){
 
   /* Script faces: scale the glyphs to the printed width. This converges
      rather than guessing, because the substitute faces differ from the
-     originals by more than a single correction can cover -- Sacramento
-     runs much wider than JimmyScript, and a one-shot estimate left the
-     RSVP numbers hanging off both edges of the panel. */
-  const base = rec.item.s / rec.P.w * 100;            // cqw, the printed size
-  let size = base;
+     originals by more than a single correction can cover. */
+  let px = basePx;
   for (let i = 0; i < 5; i++){
-    rec.el.style.fontSize = size.toFixed(4) + 'cqw';
+    rec.el.style.fontSize = px.toFixed(3) + 'px';
     const have = rec.el.offsetWidth;
     if (!have) break;
     const ratio = want / have;
     if (Math.abs(ratio - 1) < 0.005) break;
-    size = Math.min(Math.max(size * ratio, base * 0.3), base * 2.4);
+    px = Math.min(Math.max(px * ratio, basePx * 0.3), basePx * 2.4);
   }
 }
 
@@ -171,6 +167,23 @@ function revealContacts(){
     fitOne(rec);
   }
 }
+
+/* ---------- capability checks ----------
+   A number of older Android and Huawei browsers ship without flex gap.
+   Nothing here breaks loudly when it is missing -- the layout just
+   collapses into a seam, which is worse, so it is detected and the
+   stylesheet substitutes margins. */
+
+(function flexGap(){
+  const p = document.createElement('div');
+  p.style.cssText = 'display:flex;gap:1px;position:absolute;visibility:hidden';
+  p.appendChild(document.createElement('div'));
+  p.appendChild(document.createElement('div'));
+  document.body.appendChild(p);
+  const ok = p.scrollWidth === 1;
+  p.remove();
+  if (!ok) document.documentElement.classList.add('no-flexgap');
+})();
 
 /* ---------- artwork loading ----------
    Six panels used to download in parallel the moment the page opened.
@@ -312,7 +325,7 @@ dots.forEach(d => d.addEventListener('click', () => goTo(+d.dataset.i)));
 
   function release(e){
     if (x0 === null) return;
-    const dx = (e.clientX ?? x0) - x0;
+    const dx = ((e.clientX === undefined ? x0 : e.clientX)) - x0;
     x0 = null;
     card.classList.remove('is-dragging');
     if (locked !== 'x'){ return; }
