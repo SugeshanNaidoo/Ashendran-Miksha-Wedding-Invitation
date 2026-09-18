@@ -1,3 +1,7 @@
+/* build: v5-20260918-2107 */
+const BUILD = 'v5-20260918-2107';
+console.log('%cAshendran & Miksha invitation', 'color:#c9a24d', 'build', BUILD);
+
 /* ------------------------------------------------------------------
    Ashendran & Miksha — web tri-fold
    Every text position below is lifted straight from the print PDF,
