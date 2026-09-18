@@ -1,5 +1,5 @@
-/* build: v5-20260918-2107 */
-const BUILD = 'v5-20260918-2107';
+/* build: v7-20260918-2145 */
+const BUILD = 'v7-20260918-2145';
 console.log('%cAshendran & Miksha invitation', 'color:#c9a24d', 'build', BUILD);
 
 /* ------------------------------------------------------------------
@@ -65,9 +65,9 @@ const TEXT = [
 
   // ---- rsvp ----
   { p:'rsvp', t:'Kindly RSVP before 25th October', b:[807,97,1051,117], f:SERIF, s:13.5, c:MAROON, i:1, fit:'track' },
-  { p:'rsvp', t:'Groom : 000 - 000 - 0000', b:[794,126,1064,175], f:SCRIPT, s:37.6, c:GOLD, fit:'size',
+  { p:'rsvp', t:'Groom : 000 - 000 - 0000', b:[794,126,1064,175], f:SCRIPT, s:37.6, c:GOLD, fit:'size', k:.82,
     enc:'R3Jvb20gOiAwODIgLSA3NzEgLSA1ODc5', encHref:'dGVsOisyNzgyNzcxNTg3OQ==' },
-  { p:'rsvp', t:'Bride : 000 - 000 - 0000', b:[785,178,1072,228], f:SCRIPT, s:37.6, c:GOLD, fit:'size',
+  { p:'rsvp', t:'Bride : 000 - 000 - 0000', b:[785,178,1072,228], f:SCRIPT, s:37.6, c:GOLD, fit:'size', k:.82,
     enc:'QnJpZGUgOiAwNjIgLSA3NzggLSAyMTIy', encHref:'dGVsOisyNzYyNzc4MjEyMg==' },
   { p:'rsvp', t:'Your presence would be greatly appreciated', b:[780,274,1078,290], f:SERIF, s:12.5, c:MAROON, fit:'track' }
 ];
@@ -105,7 +105,11 @@ function build(){
 
     host.appendChild(el);
     // sizes are fractions of the panel width, resolved to px at fit time
-    const rec = { el, item, P, target: (x1 - x0) / P.w, baseMul: item.s / P.w };
+    /* k is an optical scale, applied on top of the printed size. The RSVP
+       contact lines are the one place the substitute script reads heavier
+       than the original, so they are set back deliberately rather than
+       left to the overflow fitter. */
+    const rec = { el, item, P, target: (x1 - x0) / P.w, baseMul: item.s / P.w * (item.k || 1) };
     el.style.fontSize = (rec.baseMul * (P.w)) + 'px';   // provisional; fit() corrects it
     built.push(rec);
   }
@@ -216,13 +220,21 @@ function revealContacts(){
    cover, and the two outer faces are fetched only if the flip is
    likely. Nothing is ever revealed before its artwork is on screen. */
 
+/* Bump ASSET_V whenever a file in /assets changes. Those files are served
+   immutable for a year, which is right -- they almost never change -- but
+   it means the browser will not even ASK for a new copy. A different URL
+   is the only thing that reaches it. This is why a redeployed music track
+   kept playing the old one while the card updated fine. */
+const ASSET_V = '5';
+const v = p => p + '?v=' + ASSET_V;
+
 const ART = {
-  cover:   'assets/panel-cover.jpg',
-  details: 'assets/panel-details.jpg',
-  names:   'assets/panel-names.jpg',
-  rsvp:    'assets/panel-rsvp.jpg',
-  credits: 'assets/panel-credits.jpg',
-  back:    'assets/panel-back.jpg'
+  cover:   v('assets/panel-cover.jpg'),
+  details: v('assets/panel-details.jpg'),
+  names:   v('assets/panel-names.jpg'),
+  rsvp:    v('assets/panel-rsvp.jpg'),
+  credits: v('assets/panel-credits.jpg'),
+  back:    v('assets/panel-back.jpg')
 };
 
 const art = {};
@@ -521,7 +533,7 @@ const bgm  = document.getElementById('bgm');
 const mute = document.getElementById('mute');
 const PREF = 'am-music';
 const VOL  = 0.34;                 // background, never foreground
-const SRC  = 'assets/music.mp3';
+const SRC  = v('assets/music.mp3');
 
 const AUTOPLAY_ON_OPEN = true;     // false = the Music button only
 
