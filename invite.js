@@ -1,5 +1,5 @@
-/* build: v7-20260918-2145 */
-const BUILD = 'v7-20260918-2145';
+/* build: v8-20260918-2155 */
+const BUILD = 'v8-20260918-2155';
 console.log('%cAshendran & Miksha invitation', 'color:#c9a24d', 'build', BUILD);
 
 /* ------------------------------------------------------------------
@@ -65,9 +65,9 @@ const TEXT = [
 
   // ---- rsvp ----
   { p:'rsvp', t:'Kindly RSVP before 25th October', b:[807,97,1051,117], f:SERIF, s:13.5, c:MAROON, i:1, fit:'track' },
-  { p:'rsvp', t:'Groom : 000 - 000 - 0000', b:[794,126,1064,175], f:SCRIPT, s:37.6, c:GOLD, fit:'size', k:.82,
+  { p:'rsvp', t:'Groom : 000 - 000 - 0000', b:[794,126,1064,175], f:SCRIPT, s:37.6, c:GOLD, fit:'size', k:.68,
     enc:'R3Jvb20gOiAwODIgLSA3NzEgLSA1ODc5', encHref:'dGVsOisyNzgyNzcxNTg3OQ==' },
-  { p:'rsvp', t:'Bride : 000 - 000 - 0000', b:[785,178,1072,228], f:SCRIPT, s:37.6, c:GOLD, fit:'size', k:.82,
+  { p:'rsvp', t:'Bride : 000 - 000 - 0000', b:[785,178,1072,228], f:SCRIPT, s:37.6, c:GOLD, fit:'size', k:.68,
     enc:'QnJpZGUgOiAwNjIgLSA3NzggLSAyMTIy', encHref:'dGVsOisyNzYyNzc4MjEyMg==' },
   { p:'rsvp', t:'Your presence would be greatly appreciated', b:[780,274,1078,290], f:SERIF, s:12.5, c:MAROON, fit:'track' }
 ];
